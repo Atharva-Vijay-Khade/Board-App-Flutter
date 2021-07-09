@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+import 'UI/ui.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -26,7 +28,8 @@ class BoardApp extends StatefulWidget {
 }
 
 class _BoardAppState extends State<BoardApp> {
-  
+
+
   late TextEditingController inputNameController;
   late TextEditingController inputTitleController;
   late TextEditingController inputDescriptionController;
@@ -42,42 +45,104 @@ class _BoardAppState extends State<BoardApp> {
 
   var fireStoreDb = FirebaseFirestore.instance.collection("board").snapshots();
 
+  // _showDialogIncomplete(BuildContext context) async {
+  //   await showDialog(
+  //       context: context,
+  //       builder: (BuildContext context) => AlertDialog(
+  //             contentPadding: EdgeInsets.all(10),
+  //             content: Center(
+  //               child: Text("Fields can't be empty"),
+  //             ),
+  //           ));
+  // }
+
   _showDialog(BuildContext context) async {
-        await showDialog(
+    await showDialog(
         context: context,
         builder: (BuildContext context) => AlertDialog(
-            contentPadding: EdgeInsets.all(10),
-            content: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                Text("Please fill out the form"),
-                Expanded(
-                  child: TextField(
-                    controller: inputNameController,
-                    autocorrect: true,
-                    autofocus: true,
-                    decoration: InputDecoration(labelText: "Your Name*"),
+                actions: <Widget>[
+                  TextButton(
+                    onPressed: () {
+                      inputTitleController.clear();
+                      inputDescriptionController.clear();
+                      inputNameController.clear();
+                      Navigator.pop(context);
+                    },
+                    child: Text("Cancel"),
                   ),
-                ),
-                Expanded(
-                  child: TextField(
-                    controller: inputTitleController,
-                    autocorrect: true,
-                    autofocus: true,
-                    decoration: InputDecoration(labelText: "Title*"),
+                  TextButton(
+                    onPressed: () {
+                      if (inputTitleController.text.isNotEmpty &&
+                          inputDescriptionController.text.isNotEmpty &&
+                          inputNameController.text.isNotEmpty) {
+                        FirebaseFirestore.instance.collection("board").add({
+                          "name": inputNameController.text,
+                          "title": inputTitleController.text,
+                          "description": inputDescriptionController.text,
+                          "dateTime":DateTime.now(),
+                        }).then((value) {
+                          print(value.id);
+                        }).catchError((error) {
+                          print(error);
+                        });
+
+                        // ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        //   content: Text("Data Added Successfully"),
+                        // ));
+
+                        inputTitleController.clear();
+                        inputDescriptionController.clear();
+                        inputNameController.clear();
+
+                        Navigator.pop(context);
+                      } else {
+                        // ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        // content: Text("Data is incomplete"),
+                        // ));
+                        // Container(
+                        //   width:100,
+                        //   height:100,
+                        //   child: Center(
+                        //     child: _showDialogIncomplete(context),
+                        //   ),
+                        // );
+                      }
+                    },
+                    child: Text("Save"),
                   ),
-                ),
-                Expanded(
-                  child: TextField(
-                    controller: inputDescriptionController,
-                    autocorrect: true,
-                    autofocus: true,
-                    decoration: InputDecoration(labelText: "Description*"),
-                  ),
-                ),
-              ],
-            )));
+                ],
+                contentPadding: EdgeInsets.all(10),
+                content: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    Text("Please fill out the form"),
+                    Expanded(
+                      child: TextField(
+                        controller: inputNameController,
+                        autocorrect: true,
+                        autofocus: true,
+                        decoration: InputDecoration(labelText: "Your Name*"),
+                      ),
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: inputTitleController,
+                        autocorrect: true,
+                        autofocus: true,
+                        decoration: InputDecoration(labelText: "Title*"),
+                      ),
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: inputDescriptionController,
+                        autocorrect: true,
+                        autofocus: true,
+                        decoration: InputDecoration(labelText: "Description*"),
+                      ),
+                    ),
+                  ],
+                )));
   }
 
   @override
@@ -101,14 +166,14 @@ class _BoardAppState extends State<BoardApp> {
             return ListView.builder(
               itemCount: snapshot.data!.docs.length,
               itemBuilder: (context, int index) {
-                return Text(snapshot.data!.docs[index]["description"]);
+                return CustomCard(index: index,snapshot: snapshot.data);
               },
             );
           }
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed:(){
+        onPressed: () {
           _showDialog(context);
         },
         child: Icon(Icons.edit),
